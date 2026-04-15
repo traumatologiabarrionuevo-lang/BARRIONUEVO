@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/Button";
 
 interface LoginFormData {
   email: string;
+  password: string;
 }
 
 export function LoginForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -25,11 +27,12 @@ export function LoginForm() {
     try {
       const result = await signIn("credentials", {
         email: data.email,
+        password: data.password,
         redirect: false,
       });
 
       if (result?.error) {
-        setError("Correo no encontrado o usuario inactivo. Verifica e intenta de nuevo.");
+        setError("Correo o contraseña incorrectos. Verifica e intenta de nuevo.");
         return;
       }
 
@@ -67,6 +70,43 @@ export function LoginForm() {
           <p className="mt-1 text-xs text-error flex items-center gap-1">
             <span className="material-symbols-outlined text-sm">error</span>
             {errors.email.message}
+          </p>
+        )}
+      </div>
+
+      {/* Password */}
+      <div className="relative">
+        <label className="text-label-md font-bold uppercase tracking-widest text-outline block mb-1.5">
+          Contraseña
+        </label>
+        <div className="relative flex items-center">
+          <span className="absolute left-4 material-symbols-outlined text-outline text-xl">
+            lock
+          </span>
+          <input
+            {...register("password", {
+              required: "La contraseña es obligatoria",
+              minLength: { value: 6, message: "Mínimo 6 caracteres" },
+            })}
+            type={showPassword ? "text" : "password"}
+            placeholder="Tu contraseña"
+            autoComplete="current-password"
+            className="w-full pl-11 pr-12 py-4 rounded-lg bg-surface-container-lowest text-on-surface ring-1 ring-outline-variant/30 focus:outline-none focus:ring-2 focus:ring-primary transition-all placeholder:text-outline/50 text-body-md"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-4 text-outline hover:text-on-surface transition-colors"
+          >
+            <span className="material-symbols-outlined text-xl">
+              {showPassword ? "visibility_off" : "visibility"}
+            </span>
+          </button>
+        </div>
+        {errors.password && (
+          <p className="mt-1 text-xs text-error flex items-center gap-1">
+            <span className="material-symbols-outlined text-sm">error</span>
+            {errors.password.message}
           </p>
         )}
       </div>

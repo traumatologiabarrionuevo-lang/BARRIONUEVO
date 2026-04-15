@@ -1,6 +1,7 @@
 import NextAuth, { type DefaultSession } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
 type UserRole = "ADMINISTRATIVO" | "EMPLEADO" | "CONTADOR" | "OTRO_ADMINISTRATIVO";
 
@@ -20,15 +21,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       name: "Credenciales",
       credentials: {
         email: { label: "Correo electrónico", type: "email" },
+        password: { label: "Contraseña", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email) return null;
+        if (!credentials?.email || !credentials?.password) return null;
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string },
         });
 
         if (!user || !user.isActive) return null;
+
+        const validPassword = await bcrypt.compare(
+          credentials.password as string,
+          user.passwordHash
+        );
+        if (!validPassword) return null;
 
         return {
           id: user.id,

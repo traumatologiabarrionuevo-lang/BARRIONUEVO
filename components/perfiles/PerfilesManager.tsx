@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { createUser, updateUser, toggleUser } from "@/server/actions/perfiles.actions";
+import { createUser, updateUser, toggleUser, deleteUser } from "@/server/actions/perfiles.actions";
 
 type Role = "ADMINISTRATIVO" | "EMPLEADO" | "CONTADOR" | "OTRO_ADMINISTRATIVO";
 
@@ -137,6 +137,12 @@ export function PerfilesManager({
 
   const handleToggle = async (id: string, active: boolean) => {
     await toggleUser(id, !active);
+    router.refresh();
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`¿Estás seguro de eliminar a "${name}"? Esta acción no se puede deshacer.`)) return;
+    await deleteUser(id);
     router.refresh();
   };
 
@@ -342,15 +348,24 @@ export function PerfilesManager({
                       <span className="material-symbols-outlined text-base">edit</span>
                     </button>
                     {user.id !== currentUserId && (
-                      <button
-                        onClick={() => handleToggle(user.id, user.isActive)}
-                        className="p-1.5 rounded-lg text-outline hover:text-primary hover:bg-primary/10 transition-all"
-                        title={user.isActive ? "Desactivar usuario" : "Activar usuario"}
-                      >
-                        <span className="material-symbols-outlined text-base">
-                          {user.isActive ? "person_off" : "person"}
-                        </span>
-                      </button>
+                      <>
+                        <button
+                          onClick={() => handleToggle(user.id, user.isActive)}
+                          className="p-1.5 rounded-lg text-outline hover:text-primary hover:bg-primary/10 transition-all"
+                          title={user.isActive ? "Desactivar usuario" : "Activar usuario"}
+                        >
+                          <span className="material-symbols-outlined text-base">
+                            {user.isActive ? "person_off" : "person"}
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => handleDelete(user.id, user.name)}
+                          className="p-1.5 rounded-lg text-outline hover:text-error hover:bg-error/10 transition-all"
+                          title="Eliminar usuario"
+                        >
+                          <span className="material-symbols-outlined text-base">delete</span>
+                        </button>
+                      </>
                     )}
                   </div>
                 </td>

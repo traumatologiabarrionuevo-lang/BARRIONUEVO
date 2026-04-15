@@ -109,6 +109,35 @@ export async function updateUser(
   }
 }
 
+export async function deleteUser(
+  id: string
+): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "ADMINISTRATIVO") {
+    return { success: false, error: "Sin permisos" };
+  }
+
+  if (id === session.user.id) {
+    return { success: false, error: "No puedes eliminar tu propia cuenta" };
+  }
+
+  try {
+    const user = await prisma.user.delete({ where: { id } });
+
+    await logAudit({
+      userId: session.user.id,
+      action: "DELETE",
+      module: "perfiles",
+      detail: `Usuario eliminado: ${user.name} (${user.email})`,
+    });
+
+    revalidatePath("/perfiles");
+    return { success: true };
+  } catch {
+    return { success: false, error: "Error al eliminar el usuario" };
+  }
+}
+
 export async function toggleUser(
   id: string,
   isActive: boolean
