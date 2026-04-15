@@ -1,0 +1,268 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── USUARIOS ────────────────────────────────────────────────────────────────
+
+model User {
+  id              String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  passwordHash    String
+  avatarUrl       String?
+  role            String   @default("EMPLEADO")
+  isActive        Boolean  @default(true)
+  downloadKeyHash String?
+  branchId        String?
+  branch          Branch?  @relation(fields: [branchId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  userPermissions UserPermission[]
+  cashClosings    CashClosing[]
+  reconciliations Reconciliation[]
+  auditLogs       AuditLog[]
+
+  @@map("users")
+}
+
+model Permission {
+  id          String  @id @default(cuid())
+  code        String  @unique
+  module      String
+  action      String
+  description String?
+
+  rolePermissions RolePermission[]
+  userPermissions UserPermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  role         String
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([role, permissionId])
+  @@map("role_permissions")
+}
+
+model UserPermission {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  granted      Boolean    @default(true)
+
+  @@unique([userId, permissionId])
+  @@map("user_permissions")
+}
+
+// ─── SUCURSALES ──────────────────────────────────────────────────────────────
+
+model Branch {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  icon      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users           User[]
+  cashClosings    CashClosing[]
+  reconciliations Reconciliation[]
+
+  @@map("branches")
+}
+
+// ─── CIERRES DE CAJA ─────────────────────────────────────────────────────────
+
+model CashClosing {
+  id             String   @id @default(cuid())
+  branchId       String
+  branch         Branch   @relation(fields: [branchId], references: [id])
+  closedById     String
+  closedBy       User     @relation(fields: [closedById], references: [id])
+  closedAt       DateTime @default(now())
+  initialFund       Decimal
+  status            String   @default("PENDIENTE")
+  notes             String?
+  totalIncome       Decimal  @default(0)
+  totalExpenses     Decimal  @default(0)
+  totalCashCount    Decimal  @default(0)
+  verifiedTransfer  Decimal  @default(0)
+  verifiedDebit     Decimal  @default(0)
+  verifiedCredit    Decimal  @default(0)
+  difference        Decimal  @default(0)
+
+  departments ClosingDepartment[]
+  expenses    CashExpense[]
+  cashCounts  CashCount[]
+  auditLogs   AuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("cash_closings")
+}
+
+model ClosingDepartment {
+  id         String      @id @default(cuid())
+  closingId  String
+  closing    CashClosing @relation(fields: [closingId], references: [id], onDelete: Cascade)
+  name       String
+  cash       Decimal     @default(0)
+  transfer   Decimal     @default(0)
+  debitCard  Decimal     @default(0)
+  creditCard Decimal     @default(0)
+  expense    Decimal     @default(0)
+  subtotal   Decimal     @default(0)
+
+  @@map("closing_departments")
+}
+
+model CashExpense {
+  id          String      @id @default(cuid())
+  closingId   String
+  closing     CashClosing @relation(fields: [closingId], references: [id], onDelete: Cascade)
+  description String
+  amount      Decimal
+
+  @@map("cash_expenses")
+}
+
+model CashCount {
+  id           String      @id @default(cuid())
+  closingId    String
+  closing      CashClosing @relation(fields: [closingId], references: [id], onDelete: Cascade)
+  denomination Decimal
+  quantity     Int
+  subtotal     Decimal
+  type         String
+
+  @@map("cash_counts")
+}
+
+// ─── CUENTAS BANCARIAS ───────────────────────────────────────────────────────
+
+model BankAccount {
+  id             String   @id @default(cuid())
+  bankName       String
+  accountType    String   // "CORRIENTE" | "AHORROS"
+  accountNumber  String
+  holderName     String
+  holderDocument String
+  department     String?  // "traumatologia_fisioterapia" | "farmacia" | "albaran" | null
+  isActive       Boolean  @default(true)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("bank_accounts")
+}
+
+// ─── CONCILIACIONES ──────────────────────────────────────────────────────────
+
+model Reconciliation {
+  id          String   @id @default(cuid())
+  branchId    String?
+  branch      Branch?  @relation(fields: [branchId], references: [id])
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  dateFrom    DateTime
+  dateTo      DateTime
+
+  systemCash     Decimal @default(0)
+  systemTransfer Decimal @default(0)
+  systemDebit    Decimal @default(0)
+  systemCredit   Decimal @default(0)
+  systemExpenses Decimal @default(0)
+
+  verifiedCash     Decimal @default(0)
+  verifiedTransfer Decimal @default(0)
+  verifiedDebit    Decimal @default(0)
+  verifiedCredit   Decimal @default(0)
+
+  difference    Decimal @default(0)
+  justification String?
+
+  details   ReconciliationDetail[]
+  depts     ReconciliationDept[]
+  auditLogs AuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("reconciliations")
+}
+
+model ReconciliationDetail {
+  id               String         @id @default(cuid())
+  reconciliationId String
+  reconciliation   Reconciliation @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
+  denomination     Decimal
+  quantity         Int
+  subtotal         Decimal
+  type             String
+
+  @@map("reconciliation_details")
+}
+
+model ReconciliationDept {
+  id               String         @id @default(cuid())
+  reconciliationId String
+  reconciliation   Reconciliation @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
+  department       String         // "traumatologia_fisioterapia" | "farmacia" | "albaran"
+  systemCashNet    Decimal        @default(0)
+  verifiedCash     Decimal        @default(0)
+  difference       Decimal        @default(0)
+  bankAccountId    String?
+  details          ReconciliationDeptDetail[]
+
+  @@map("reconciliation_depts")
+}
+
+model ReconciliationDeptDetail {
+  id           String             @id @default(cuid())
+  deptId       String
+  dept         ReconciliationDept @relation(fields: [deptId], references: [id], onDelete: Cascade)
+  denomination Decimal
+  quantity     Int
+  subtotal     Decimal
+  type         String
+
+  @@map("reconciliation_dept_details")
+}
+
+// ─── AUDITORÍA ───────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+  action    String
+  module    String
+  detail    String?
+  metadata  String?
+  branchId  String?
+  ipAddress String?
+
+  cashClosingId    String?
+  cashClosing      CashClosing?    @relation(fields: [cashClosingId], references: [id])
+  reconciliationId String?
+  reconciliation   Reconciliation? @relation(fields: [reconciliationId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
