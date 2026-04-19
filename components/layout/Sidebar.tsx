@@ -4,39 +4,37 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
-type Role = "ADMINISTRATIVO" | "EMPLEADO" | "CONTADOR" | "OTRO_ADMINISTRATIVO";
 
 interface NavItem {
   href: string;
   icon: string;
   label: string;
-  roles?: Role[];
+  moduleKey: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", icon: "dashboard", label: "Dashboard", roles: ["ADMINISTRATIVO", "CONTADOR", "OTRO_ADMINISTRATIVO"] },
-  { href: "/arqueo", icon: "account_balance_wallet", label: "Arqueo de Caja", roles: ["EMPLEADO", "ADMINISTRATIVO", "OTRO_ADMINISTRATIVO"] },
-  { href: "/cierres", icon: "receipt_long", label: "Historial de Cierres", roles: ["EMPLEADO", "ADMINISTRATIVO", "CONTADOR", "OTRO_ADMINISTRATIVO"] },
-  { href: "/conciliaciones", icon: "fact_check", label: "Nueva Conciliación", roles: ["ADMINISTRATIVO", "CONTADOR"] },
-  { href: "/conciliaciones/historial", icon: "history", label: "Historial Conciliaciones", roles: ["ADMINISTRATIVO", "CONTADOR"] },
-  { href: "/auditoria", icon: "security", label: "Auditoría", roles: ["ADMINISTRATIVO", "CONTADOR"] },
-  { href: "/perfiles", icon: "group", label: "Perfiles y Permisos", roles: ["ADMINISTRATIVO"] },
-  { href: "/establecimientos", icon: "store", label: "Establecimientos", roles: ["ADMINISTRATIVO"] },
-  { href: "/bancos", icon: "account_balance", label: "Cuentas Bancarias", roles: ["ADMINISTRATIVO"] },
+  { href: "/dashboard",               icon: "dashboard",               label: "Dashboard",               moduleKey: "dashboard" },
+  { href: "/arqueo",                   icon: "account_balance_wallet",  label: "Arqueo de Caja",          moduleKey: "arqueo" },
+  { href: "/cierres",                  icon: "receipt_long",            label: "Historial de Cierres",    moduleKey: "cierres" },
+  { href: "/conciliaciones",           icon: "fact_check",              label: "Nueva Conciliación",      moduleKey: "conciliaciones" },
+  { href: "/conciliaciones/historial", icon: "history",                 label: "Historial Conciliaciones",moduleKey: "conciliaciones" },
+  { href: "/auditoria",                icon: "security",                label: "Auditoría",               moduleKey: "auditoria" },
+  { href: "/perfiles",                 icon: "group",                   label: "Perfiles y Permisos",     moduleKey: "perfiles" },
+  { href: "/establecimientos",         icon: "store",                   label: "Establecimientos",        moduleKey: "establecimientos" },
+  { href: "/bancos",                   icon: "account_balance",         label: "Cuentas Bancarias",       moduleKey: "bancos" },
 ];
 
 interface SidebarProps {
-  userRole: Role;
+  allowedModules: string[];
   userName: string;
   userEmail: string;
 }
 
-export function Sidebar({ userRole, userName, userEmail }: SidebarProps) {
+export function Sidebar({ allowedModules, userName, userEmail }: SidebarProps) {
   const pathname = usePathname();
+  const allowed = new Set(allowedModules);
 
-  const visibleItems = NAV_ITEMS.filter(
-    (item) => !item.roles || item.roles.includes(userRole)
-  );
+  const visibleItems = NAV_ITEMS.filter((item) => allowed.has(item.moduleKey));
 
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-64 bg-primary flex flex-col z-40">

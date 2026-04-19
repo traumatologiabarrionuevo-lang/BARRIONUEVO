@@ -5,7 +5,7 @@ import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
-type Role = "ADMINISTRATIVO" | "EMPLEADO" | "CONTADOR" | "OTRO_ADMINISTRATIVO";
+import { ROLE_MODULE_ACCESS, type Role } from "@/lib/module-access";
 
 export async function createUser(data: {
   name: string;
@@ -136,6 +136,59 @@ export async function deleteUser(
   } catch {
     return { success: false, error: "Error al eliminar el usuario" };
   }
+}
+
+export async function setUserModuleAccess(
+  userId: string,
+  moduleKey: string,
+  granted: boolean
+): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "ADMINISTRATIVO") {
+    return { success: false, error: "Sin permisos" };
+  }
+  if (userId === session.user.id) {
+    return { success: false, error: "No puedes modificar tu propio acceso a módulos" };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true, name: true },
+  });
+  if (!user) return { success: false, error: "Usuario no encontrado" };
+
+  const permCode = `${moduleKey}:view`;
+
+  const permission = await prisma.permission.upsert({
+    where: { code: permCode },
+    update: {},
+    create: { code: permCode, module: moduleKey, action: "view" },
+  });
+
+  const roleDefault = ROLE_MODULE_ACCESS[user.role as Role]?.includes(moduleKey) ?? false;
+
+  if (granted === roleDefault) {
+    // Matches role default — remove override to keep DB clean
+    await prisma.userPermission.deleteMany({
+      where: { userId, permissionId: permission.id },
+    });
+  } else {
+    await prisma.userPermission.upsert({
+      where: { userId_permissionId: { userId, permissionId: permission.id } },
+      update: { granted },
+      create: { userId, permissionId: permission.id, granted },
+    });
+  }
+
+  await logAudit({
+    userId: session.user.id,
+    action: "UPDATE",
+    module: "perfiles",
+    detail: `Módulo "${moduleKey}" ${granted ? "activado" : "desactivado"} para usuario: ${user.name}`,
+  });
+
+  revalidatePath("/perfiles");
+  return { success: true };
 }
 
 export async function toggleUser(

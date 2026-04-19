@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { createUser, updateUser, toggleUser, deleteUser } from "@/server/actions/perfiles.actions";
-
-type Role = "ADMINISTRATIVO" | "EMPLEADO" | "CONTADOR" | "OTRO_ADMINISTRATIVO";
+import { createUser, updateUser, toggleUser, deleteUser, setUserModuleAccess } from "@/server/actions/perfiles.actions";
+import { MODULES, ROLE_MODULE_ACCESS, getEffectiveModules, roleHasModule, type Role } from "@/lib/module-access";
 
 interface User {
   id: string;
@@ -18,6 +17,7 @@ interface User {
   avatarUrl: string | null;
   createdAt: string;
   closingsCount: number;
+  moduleOverrides: Record<string, boolean>;
 }
 
 interface Branch { id: string; name: string; }
@@ -52,17 +52,6 @@ const emptyForm = (): FormState => ({
   branchId: "",
 });
 
-const MODULE_PERMISSIONS = [
-  { key: "dashboard", label: "Dashboard" },
-  { key: "arqueo", label: "Arqueo de Caja" },
-  { key: "cierres", label: "Historial de Cierres" },
-  { key: "conciliaciones", label: "Conciliaciones" },
-  { key: "auditoria", label: "Auditoría" },
-  { key: "perfiles", label: "Perfiles y Permisos" },
-  { key: "establecimientos", label: "Establecimientos" },
-  { key: "bancos", label: "Cuentas Bancarias" },
-];
-
 export function PerfilesManager({
   users,
   branches,
@@ -78,12 +67,15 @@ export function PerfilesManager({
   const [form, setForm] = useState<FormState>(emptyForm());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [moduleOverrides, setModuleOverrides] = useState<Record<string, boolean>>({});
+  const [isPending, startTransition] = useTransition();
 
   const set = (k: keyof FormState, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const openCreate = () => {
     setEditingUser(null);
     setForm(emptyForm());
+    setModuleOverrides({});
     setError(null);
     setShowForm(true);
   };
@@ -97,6 +89,7 @@ export function PerfilesManager({
       role: u.role,
       branchId: u.branchId ?? "",
     });
+    setModuleOverrides(u.moduleOverrides ?? {});
     setError(null);
     setShowForm(true);
   };
@@ -145,6 +138,35 @@ export function PerfilesManager({
     await deleteUser(id);
     router.refresh();
   };
+
+  const handleModuleToggle = (moduleKey: string, currentEffective: boolean) => {
+    if (!editingUser) return;
+    const newValue = !currentEffective;
+
+    // Optimistic UI update
+    setModuleOverrides((prev) => {
+      const roleDefault = roleHasModule(editingUser.role, moduleKey);
+      if (newValue === roleDefault) {
+        // Removing override (reset to role default)
+        const next = { ...prev };
+        delete next[moduleKey];
+        return next;
+      }
+      return { ...prev, [moduleKey]: newValue };
+    });
+
+    startTransition(async () => {
+      const result = await setUserModuleAccess(editingUser.id, moduleKey, newValue);
+      if (!result.success) {
+        // Revert on error
+        setModuleOverrides((prev) => ({ ...prev, [moduleKey]: currentEffective }));
+      }
+    });
+  };
+
+  const effectiveModules = editingUser
+    ? new Set(getEffectiveModules(form.role, moduleOverrides))
+    : new Set(ROLE_MODULE_ACCESS[form.role] ?? []);
 
   const inputCls =
     "px-4 py-3 rounded-lg bg-surface-container-low text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 w-full text-body-md";
@@ -240,38 +262,77 @@ export function PerfilesManager({
               </div>
             </div>
 
-            {/* Módulos visibles por rol */}
-            <div className="flex flex-col gap-2 p-4 bg-surface-container-low rounded-xl">
-              <p className="text-xs font-semibold uppercase tracking-widest text-outline mb-1">
-                Módulos — acceso según rol seleccionado
-              </p>
+            {/* Módulos con acceso */}
+            <div className="flex flex-col gap-3 p-4 bg-surface-container-low rounded-xl">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-widest text-outline">
+                  Acceso a Módulos
+                </p>
+                {editingUser && (
+                  <p className="text-xs text-on-surface-variant">
+                    {isPending ? "Guardando..." : "Los cambios se guardan automáticamente"}
+                  </p>
+                )}
+              </div>
+
+              {!editingUser && (
+                <p className="text-xs text-on-surface-variant -mt-1">
+                  Acceso predeterminado según el rol. Podrás personalizar módulo por módulo después de crear el usuario.
+                </p>
+              )}
+
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {MODULE_PERMISSIONS.map(({ key, label }) => {
-                  const hasAccess =
-                    form.role === "ADMINISTRATIVO" ||
-                    (form.role === "EMPLEADO" && ["arqueo", "cierres"].includes(key)) ||
-                    (form.role === "CONTADOR" && ["dashboard", "cierres", "conciliaciones", "auditoria"].includes(key)) ||
-                    (form.role === "OTRO_ADMINISTRATIVO" && ["dashboard", "arqueo", "cierres"].includes(key));
+                {MODULES.map(({ key, label }) => {
+                  const hasAccess = effectiveModules.has(key);
+                  const isOverride = editingUser
+                    ? key in moduleOverrides
+                    : false;
+                  const isEditable = !!editingUser && editingUser.id !== currentUserId;
+
                   return (
-                    <div
+                    <button
                       key={key}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 ${
-                        hasAccess
-                          ? "bg-green-100 text-green-800"
-                          : "bg-surface-container text-outline"
-                      }`}
+                      type="button"
+                      disabled={!isEditable || isPending}
+                      onClick={() => isEditable && handleModuleToggle(key, hasAccess)}
+                      className={`
+                        relative px-3 py-2.5 rounded-lg text-xs font-medium flex items-center gap-2 text-left transition-all
+                        ${hasAccess
+                          ? "bg-green-100 text-green-800 hover:bg-green-200"
+                          : "bg-surface-container text-outline hover:bg-surface-container-high"
+                        }
+                        ${isEditable ? "cursor-pointer" : "cursor-default"}
+                        ${isPending ? "opacity-60" : ""}
+                      `}
                     >
-                      <span className="material-symbols-outlined text-sm">
+                      <span className="material-symbols-outlined text-sm flex-shrink-0">
                         {hasAccess ? "check_circle" : "block"}
                       </span>
-                      {label}
-                    </div>
+                      <span className="flex-1">{label}</span>
+                      {isOverride && (
+                        <span
+                          className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border border-white"
+                          title="Acceso personalizado (diferente al rol por defecto)"
+                        />
+                      )}
+                    </button>
                   );
                 })}
               </div>
-              <p className="text-xs text-on-surface-variant mt-1">
-                Los permisos se asignan automáticamente por rol.
-              </p>
+
+              {editingUser && editingUser.id !== currentUserId && (
+                <p className="text-xs text-on-surface-variant">
+                  <span className="inline-flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+                    Punto naranja = acceso personalizado (diferente al rol base)
+                  </span>
+                </p>
+              )}
+              {editingUser && editingUser.id === currentUserId && (
+                <p className="text-xs text-outline italic">
+                  No puedes modificar tu propio acceso a módulos.
+                </p>
+              )}
             </div>
 
             <div className="flex gap-3">

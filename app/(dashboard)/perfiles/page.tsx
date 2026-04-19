@@ -18,6 +18,10 @@ export default async function PerfilesPage() {
       include: {
         branch: { select: { name: true } },
         _count: { select: { cashClosings: true } },
+        userPermissions: {
+          where: { permission: { action: "view" } },
+          include: { permission: { select: { module: true } } },
+        },
       },
     }),
     prisma.branch.findMany({
@@ -47,6 +51,9 @@ export default async function PerfilesPage() {
             avatarUrl: u.avatarUrl,
             createdAt: u.createdAt.toISOString(),
             closingsCount: u._count.cashClosings,
+            moduleOverrides: Object.fromEntries(
+              u.userPermissions.map((up) => [up.permission.module, up.granted])
+            ),
           }))}
           branches={branches}
           currentUserId={session.user.id}
