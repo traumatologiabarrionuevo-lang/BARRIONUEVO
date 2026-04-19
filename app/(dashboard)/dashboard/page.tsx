@@ -72,14 +72,14 @@ export default async function DashboardPage() {
           />
         </div>
 
-        {/* Branch Stats — ingresos, egresos, balance, gráfica y formas de pago por sucursal */}
-        <BranchStatsSection branchStats={stats.branchStats} />
-
         {/* Gráfica global — Ingresos vs Egresos + Formas de Pago */}
         <DashboardCharts
           monthlyData={stats.monthlyData}
           paymentDistribution={stats.paymentDistribution}
         />
+
+        {/* Branch Stats — ingresos, egresos, balance, gráfica y formas de pago por sucursal */}
+        <BranchStatsSection branchStats={stats.branchStats} />
 
         {/* Recent Closings */}
         <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
