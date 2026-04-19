@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
+import { BranchStatsSection } from "@/components/dashboard/BranchStatsSection";
 import Link from "next/link";
 
 export const metadata = { title: "Dashboard — Arqueo Caja Barrionuevo" };
@@ -71,7 +72,10 @@ export default async function DashboardPage() {
           />
         </div>
 
-        {/* Charts */}
+        {/* Branch Stats — ingresos, egresos, balance, gráfica y formas de pago por sucursal */}
+        <BranchStatsSection branchStats={stats.branchStats} />
+
+        {/* Gráfica global — Ingresos vs Egresos + Formas de Pago */}
         <DashboardCharts
           monthlyData={stats.monthlyData}
           paymentDistribution={stats.paymentDistribution}
