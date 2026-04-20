@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { InactivityGuard } from "@/components/InactivityGuard";
 import { getEffectiveModules, type Role } from "@/lib/module-access";
 
 async function getUserAllowedModules(userId: string, role: Role): Promise<string[]> {
@@ -36,6 +37,7 @@ export default async function EmpleadoLayout({
 
   return (
     <div className="flex min-h-screen bg-surface">
+      <InactivityGuard />
       <Sidebar
         allowedModules={allowedModules}
         userName={session.user.name ?? "Usuario"}
