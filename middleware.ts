@@ -5,7 +5,7 @@ import type { NextRequest } from "next/server";
 const PUBLIC_ROUTES = ["/login"];
 
 function getDefaultRedirect(role?: string) {
-  return role === "EMPLEADO" ? "/arqueo" : "/dashboard";
+  return role === "ADMINISTRATIVO" || role === "CONTADOR" ? "/dashboard" : "/arqueo";
 }
 
 export default auth(function middleware(req: NextRequest & { auth: unknown }) {
