@@ -1,6 +1,7 @@
 import { LoginForm } from "@/components/auth/LoginForm";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import Image from "next/image";
 
 export const metadata = {
   title: "Iniciar Sesión — Arqueo Caja Barrionuevo",
@@ -11,28 +12,26 @@ export default async function LoginPage() {
   if (session?.user) redirect("/dashboard");
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Decorative background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-primary/5" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-secondary-container/30" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/3" />
-      </div>
+    <div className="min-h-screen bg-surface flex flex-col items-center justify-center p-4">
 
       {/* Card */}
-      <div className="relative w-full max-w-md">
+      <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl btn-gradient mb-4 shadow-xl shadow-primary/30">
-            <span className="material-symbols-outlined text-white text-3xl">
-              account_balance
-            </span>
+          <div className="inline-flex items-center justify-center mb-4">
+            <Image
+              src="/logo.png"
+              alt="Barrionuevo Logo"
+              width={80}
+              height={80}
+              priority
+            />
           </div>
           <h1 className="text-headline-sm text-on-surface font-black">
             Arqueo Caja
           </h1>
           <p className="text-body-md text-on-surface-variant mt-1">
-            Centro de Traumatología y Fisioterapia Barrionuevo
+            Traumatología Fisioterapia Barrionuevo
           </p>
         </div>
 
