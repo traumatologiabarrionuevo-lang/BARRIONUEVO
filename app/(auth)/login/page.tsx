@@ -22,9 +22,10 @@ export default async function LoginPage() {
             <Image
               src="/logo.png"
               alt="Barrionuevo Logo"
-              width={80}
-              height={80}
+              width={100}
+              height={109}
               priority
+              unoptimized
             />
           </div>
           <h1 className="text-headline-sm text-on-surface font-black">
