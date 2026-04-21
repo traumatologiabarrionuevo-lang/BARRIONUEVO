@@ -1,7 +1,6 @@
 import { LoginForm } from "@/components/auth/LoginForm";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import Image from "next/image";
 
 export const metadata = {
   title: "Iniciar Sesión — Arqueo Caja Barrionuevo",
@@ -18,15 +17,10 @@ export default async function LoginPage() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center mb-4">
-            <Image
-              src="/logo.png"
-              alt="Barrionuevo Logo"
-              width={100}
-              height={109}
-              priority
-              unoptimized
-            />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl btn-gradient mb-4 shadow-xl shadow-primary/30">
+            <span className="material-symbols-outlined text-white text-3xl">
+              finance_mode
+            </span>
           </div>
           <h1 className="text-headline-sm text-on-surface font-black">
             Arqueo Caja
