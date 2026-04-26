@@ -8,10 +8,29 @@ import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
 import { BranchStatsSection } from "@/components/dashboard/BranchStatsSection";
 import { DashboardFilter } from "@/components/dashboard/DashboardFilter";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export const metadata = { title: "Dashboard — Arqueo Caja Barrionuevo" };
 
-type FilterType = "mes" | "dia" | "año" | "rango";
+type FilterType = "mes" | "dia" | "semana" | "año" | "rango";
+
+function mondayOfISOWeek(year: number, week: number): Date {
+  const jan4 = new Date(year, 0, 4, 0, 0, 0);
+  const dow = (jan4.getDay() + 6) % 7; // 0=Mon
+  const monday = new Date(jan4);
+  monday.setDate(4 - dow + (week - 1) * 7);
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
+function toISOWeek(date: Date): string {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+  const yearStart = new Date(d.getFullYear(), 0, 1);
+  const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return `${d.getFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+}
 
 function parseDateRange(params: Record<string, string | string[] | undefined>): {
   start: Date;
@@ -19,6 +38,7 @@ function parseDateRange(params: Record<string, string | string[] | undefined>): 
   label: string;
   tipo: FilterType;
   fecha: string;
+  semana: string;
   mes: string;
   año: string;
   desde: string;
@@ -34,14 +54,28 @@ function parseDateRange(params: Record<string, string | string[] | undefined>): 
     const start = new Date(y, m - 1, d, 0, 0, 0);
     const end   = new Date(y, m - 1, d, 23, 59, 59);
     const label = start.toLocaleDateString("es-EC", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "America/Guayaquil" });
-    return { start, end, label: label.charAt(0).toUpperCase() + label.slice(1), tipo, fecha, mes: String(now.getMonth() + 1), año: String(now.getFullYear()), desde: "", hasta: "" };
+    return { start, end, label: label.charAt(0).toUpperCase() + label.slice(1), tipo, fecha, semana: toISOWeek(now), mes: String(now.getMonth() + 1), año: String(now.getFullYear()), desde: "", hasta: "" };
+  }
+
+  if (tipo === "semana") {
+    const semana = get("semana") || toISOWeek(now);
+    const [yearStr, weekPart] = semana.split("-W");
+    const y = parseInt(yearStr);
+    const w = parseInt(weekPart);
+    const monday = mondayOfISOWeek(y, w);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59);
+    const fmt = (d: Date) => d.toLocaleDateString("es-EC", { day: "numeric", month: "short", timeZone: "America/Guayaquil" });
+    const endFmt = sunday.toLocaleDateString("es-EC", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Guayaquil" });
+    return { start: monday, end: sunday, label: `Semana del ${fmt(monday)} al ${endFmt}`, tipo, fecha: now.toISOString().split("T")[0], semana, mes: String(now.getMonth() + 1), año: String(now.getFullYear()), desde: "", hasta: "" };
   }
 
   if (tipo === "año") {
     const y = parseInt(get("año") || String(now.getFullYear()));
     const start = new Date(y, 0, 1, 0, 0, 0);
     const end   = new Date(y, 11, 31, 23, 59, 59);
-    return { start, end, label: `Año ${y}`, tipo, fecha: now.toISOString().split("T")[0], mes: String(now.getMonth() + 1), año: String(y), desde: "", hasta: "" };
+    return { start, end, label: `Año ${y}`, tipo, fecha: now.toISOString().split("T")[0], semana: toISOWeek(now), mes: String(now.getMonth() + 1), año: String(y), desde: "", hasta: "" };
   }
 
   if (tipo === "rango") {
@@ -51,7 +85,7 @@ function parseDateRange(params: Record<string, string | string[] | undefined>): 
     const end   = new Date(hasta + "T23:59:59");
     const fmt = (d: Date) => d.toLocaleDateString("es-EC", { day: "numeric", month: "short", timeZone: "America/Guayaquil" });
     const endFmt = end.toLocaleDateString("es-EC", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Guayaquil" });
-    return { start, end, label: `${fmt(start)} — ${endFmt}`, tipo, fecha: now.toISOString().split("T")[0], mes: String(now.getMonth() + 1), año: String(now.getFullYear()), desde, hasta };
+    return { start, end, label: `${fmt(start)} — ${endFmt}`, tipo, fecha: now.toISOString().split("T")[0], semana: toISOWeek(now), mes: String(now.getMonth() + 1), año: String(now.getFullYear()), desde, hasta };
   }
 
   // Default: mes
@@ -60,7 +94,7 @@ function parseDateRange(params: Record<string, string | string[] | undefined>): 
   const start = new Date(y, m - 1, 1, 0, 0, 0);
   const end   = new Date(y, m, 0, 23, 59, 59);
   const monthName = start.toLocaleDateString("es-EC", { month: "long", year: "numeric", timeZone: "America/Guayaquil" });
-  return { start, end, label: monthName.charAt(0).toUpperCase() + monthName.slice(1), tipo: "mes", fecha: now.toISOString().split("T")[0], mes: String(m), año: String(y), desde: "", hasta: "" };
+  return { start, end, label: monthName.charAt(0).toUpperCase() + monthName.slice(1), tipo: "mes", fecha: now.toISOString().split("T")[0], semana: toISOWeek(now), mes: String(m), año: String(y), desde: "", hasta: "" };
 }
 
 export default async function DashboardPage({
@@ -68,9 +102,15 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await auth();
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+
+  // Solo roles con acceso a dashboard
+  const role = session.user.role;
+  if (role === "EMPLEADO") redirect("/arqueo");
+
   const params = await searchParams;
-  const { start, end, label, tipo, fecha, mes, año, desde, hasta } = parseDateRange(params);
+  const { start, end, label, tipo, fecha, semana, mes, año, desde, hasta } = parseDateRange(params);
   const stats = await getDashboardStats({ start, end });
 
   return (
@@ -96,6 +136,7 @@ export default async function DashboardPage({
         <DashboardFilter
           initialTipo={tipo}
           initialFecha={fecha}
+          initialSemana={semana}
           initialMes={mes}
           initialAño={año}
           initialDesde={desde}

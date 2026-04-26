@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-type FilterType = "mes" | "dia" | "año" | "rango";
+type FilterType = "dia" | "semana" | "mes" | "año" | "rango";
 
 const MONTHS = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -16,6 +16,7 @@ const YEARS = Array.from({ length: 6 }, (_, i) => now.getFullYear() - i);
 interface Props {
   initialTipo: FilterType;
   initialFecha: string;
+  initialSemana: string;
   initialMes: string;
   initialAño: string;
   initialDesde: string;
@@ -24,11 +25,12 @@ interface Props {
 }
 
 export function DashboardFilter({
-  initialTipo, initialFecha, initialMes, initialAño, initialDesde, initialHasta, label,
+  initialTipo, initialFecha, initialSemana, initialMes, initialAño, initialDesde, initialHasta, label,
 }: Props) {
   const router = useRouter();
   const [tipo, setTipo] = useState<FilterType>(initialTipo);
   const [fecha, setFecha] = useState(initialFecha);
+  const [semana, setSemana] = useState(initialSemana);
   const [mes, setMes] = useState(initialMes);
   const [año, setAño] = useState(initialAño);
   const [desde, setDesde] = useState(initialDesde);
@@ -37,20 +39,22 @@ export function DashboardFilter({
   const apply = () => {
     const params = new URLSearchParams();
     params.set("tipo", tipo);
-    if (tipo === "dia")   params.set("fecha", fecha);
-    if (tipo === "mes")   { params.set("mes", mes); params.set("año", año); }
-    if (tipo === "año")   params.set("año", año);
-    if (tipo === "rango") { params.set("desde", desde); params.set("hasta", hasta); }
+    if (tipo === "dia")    params.set("fecha", fecha);
+    if (tipo === "semana") params.set("semana", semana);
+    if (tipo === "mes")    { params.set("mes", mes); params.set("año", año); }
+    if (tipo === "año")    params.set("año", año);
+    if (tipo === "rango")  { params.set("desde", desde); params.set("hasta", hasta); }
     router.push(`/dashboard?${params.toString()}`);
   };
 
   const inputCls = "px-3 py-2 rounded-lg bg-surface-container-low text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 border border-outline-variant/20";
 
   const tabs: { key: FilterType; label: string; icon: string }[] = [
-    { key: "dia",   label: "Día",   icon: "today" },
-    { key: "mes",   label: "Mes",   icon: "calendar_month" },
-    { key: "año",   label: "Año",   icon: "event_note" },
-    { key: "rango", label: "Rango", icon: "date_range" },
+    { key: "dia",    label: "Día",    icon: "today" },
+    { key: "semana", label: "Semana", icon: "view_week" },
+    { key: "mes",    label: "Mes",    icon: "calendar_month" },
+    { key: "año",    label: "Año",    icon: "event_note" },
+    { key: "rango",  label: "Rango",  icon: "date_range" },
   ];
 
   return (
@@ -86,6 +90,15 @@ export function DashboardFilter({
             type="date"
             value={fecha}
             onChange={(e) => setFecha(e.target.value)}
+            className={inputCls}
+          />
+        )}
+
+        {tipo === "semana" && (
+          <input
+            type="week"
+            value={semana}
+            onChange={(e) => setSemana(e.target.value)}
             className={inputCls}
           />
         )}
