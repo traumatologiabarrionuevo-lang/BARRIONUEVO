@@ -21,6 +21,15 @@ const ACTION_COLORS: Record<string, string> = {
   LOGOUT: "bg-surface-container-highest text-on-surface-variant",
 };
 
+const ACTION_LABELS: Record<string, string> = {
+  CREATE: "Creación",
+  UPDATE: "Actualización",
+  DELETE: "Eliminación",
+  EXPORT: "Exportación",
+  LOGIN: "Inicio de sesión",
+  LOGOUT: "Cierre de sesión",
+};
+
 export default async function AuditoriaPage({
   searchParams,
 }: {
@@ -145,8 +154,8 @@ export default async function AuditoriaPage({
                       <span className="text-body-sm font-semibold text-on-surface-variant capitalize">{log.module}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-0.5 rounded-full text-label-sm font-black uppercase tracking-wide ${ACTION_COLORS[log.action] ?? "bg-surface-container text-on-surface-variant"}`}>
-                        {log.action}
+                      <span className={`px-2 py-0.5 rounded-full text-label-sm tracking-wide ${ACTION_COLORS[log.action] ?? "bg-surface-container text-on-surface-variant"}`}>
+                        {ACTION_LABELS[log.action] ?? log.action}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-body-sm text-on-surface-variant max-w-xs truncate" title={log.detail ?? ""}>
