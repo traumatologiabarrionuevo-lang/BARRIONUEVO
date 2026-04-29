@@ -21,6 +21,9 @@ export default async function CierresPage({ searchParams }: PageProps) {
   const session = await auth();
   const params = await searchParams;
 
+  const isAdmin = session?.user?.role === "ADMINISTRATIVO";
+  const userId = isAdmin ? undefined : session?.user?.id;
+
   const [data, branches] = await Promise.all([
     getCierres({
       dateFrom: params.dateFrom,
@@ -28,6 +31,7 @@ export default async function CierresPage({ searchParams }: PageProps) {
       branchId: params.branchId,
       status: params.status as "CUADRADO" | "PENDIENTE" | "CON_DIFERENCIA" | "AUDITADO" | undefined,
       page: params.page ? parseInt(params.page) : 1,
+      userId,
     }),
     prisma.branch.findMany({ where: { isActive: true }, select: { id: true, name: true } }),
   ]);
