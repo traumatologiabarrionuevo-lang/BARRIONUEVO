@@ -12,6 +12,7 @@ interface PageProps {
     dateFrom?: string;
     dateTo?: string;
     branchId?: string;
+    employeeId?: string;
     status?: string;
     page?: string;
   }>;
@@ -22,9 +23,9 @@ export default async function CierresPage({ searchParams }: PageProps) {
   const params = await searchParams;
 
   const isAdmin = session?.user?.role === "ADMINISTRATIVO";
-  const userId = isAdmin ? undefined : session?.user?.id;
+  const userId = isAdmin ? params.employeeId : session?.user?.id;
 
-  const [data, branches] = await Promise.all([
+  const [data, branches, employees] = await Promise.all([
     getCierres({
       dateFrom: params.dateFrom,
       dateTo: params.dateTo,
@@ -34,6 +35,9 @@ export default async function CierresPage({ searchParams }: PageProps) {
       userId,
     }),
     prisma.branch.findMany({ where: { isActive: true }, select: { id: true, name: true } }),
+    isAdmin
+      ? prisma.user.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } })
+      : Promise.resolve([]),
   ]);
 
   return (
@@ -56,6 +60,7 @@ export default async function CierresPage({ searchParams }: PageProps) {
         <CierresTable
           data={data}
           branches={branches}
+          employees={employees}
           filters={params}
           userRole={session?.user?.role ?? "EMPLEADO"}
         />
