@@ -21,6 +21,9 @@ interface Cierre {
   totalIncome: number;
   totalExpenses: number;
   totalCashCount: number;
+  verifiedTransfer: number;
+  verifiedDebit: number;
+  verifiedCredit: number;
   difference: number;
   status: string;
 }
@@ -93,19 +96,21 @@ export function CierresTable({ data, branches, filters, userRole }: CierresTable
               className="px-3 py-2.5 rounded-lg bg-surface-container-low text-on-surface text-body-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-label-sm font-bold uppercase tracking-widest text-outline">Sucursal</label>
-            <select
-              value={filters.branchId ?? ""}
-              onChange={(e) => updateFilter("branchId", e.target.value)}
-              className="px-3 py-2.5 rounded-lg bg-surface-container-low text-on-surface text-body-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-            >
-              <option value="">Todas</option>
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
-          </div>
+          {userRole === "ADMINISTRATIVO" && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-label-sm font-bold uppercase tracking-widest text-outline">Sucursal</label>
+              <select
+                value={filters.branchId ?? ""}
+                onChange={(e) => updateFilter("branchId", e.target.value)}
+                className="px-3 py-2.5 rounded-lg bg-surface-container-low text-on-surface text-body-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                <option value="">Todas</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="flex flex-col gap-1.5">
             <label className="text-label-sm font-bold uppercase tracking-widest text-outline">Estado</label>
             <select
@@ -141,30 +146,33 @@ export function CierresTable({ data, branches, filters, userRole }: CierresTable
             <table className="w-full">
               <thead>
                 <tr className="bg-surface-container-low">
-                  {["Sucursal", "Empleado", "Fecha", "Fondo Inicial", "Total Ingresos", "Egresos", "Conteo Físico", "Diferencia", "Estado", ""].map((h) => (
-                    <th key={h} className="px-4 py-4 text-left text-label-md font-bold uppercase tracking-widest text-outline">
+                  {["Sucursal", "Empleado", "Fecha", "Fondo Inicial", "Total Ingresos", "Total Egresos", "Total Verificado", "Estado", ""].map((h) => (
+                    <th key={h} className="px-4 py-4 text-left text-label-md font-bold uppercase tracking-widest text-outline whitespace-nowrap">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {data.items.map((cierre, i) => (
+                {data.items.map((cierre, i) => {
+                  const totalVerificado = cierre.totalCashCount + cierre.verifiedTransfer + cierre.verifiedDebit + cierre.verifiedCredit;
+                  return (
                   <tr
                     key={cierre.id}
                     className={`hover:bg-surface-container-low/50 transition-colors ${i % 2 === 0 ? "bg-surface-container-lowest" : "bg-surface"}`}
                   >
-                    <td className="px-4 py-4 text-body-md text-on-surface font-medium">{cierre.branchName}</td>
-                    <td className="px-4 py-4 text-body-md text-on-surface-variant">{cierre.closedByName}</td>
-                    <td className="px-4 py-4 text-body-md text-on-surface-variant monospaced-numbers">{formatDateTime(cierre.closedAt)}</td>
+                    <td className="px-4 py-4 text-body-md text-on-surface font-medium whitespace-nowrap">{cierre.branchName}</td>
+                    <td className="px-4 py-4 text-body-md text-on-surface-variant whitespace-nowrap">{cierre.closedByName}</td>
+                    <td className="px-4 py-4 text-body-md text-on-surface-variant monospaced-numbers whitespace-nowrap">{formatDateTime(cierre.closedAt)}</td>
                     <td className="px-4 py-4 text-body-md text-on-surface monospaced-numbers">{formatCurrency(cierre.initialFund)}</td>
                     <td className="px-4 py-4 text-body-md font-semibold text-on-surface monospaced-numbers">{formatCurrency(cierre.totalIncome)}</td>
                     <td className="px-4 py-4 text-body-md text-error monospaced-numbers">
                       {cierre.totalExpenses > 0 ? `(${formatCurrency(cierre.totalExpenses)})` : "—"}
                     </td>
-                    <td className="px-4 py-4 text-body-md text-on-surface monospaced-numbers">{formatCurrency(cierre.totalCashCount)}</td>
-                    <td className={`px-4 py-4 text-body-md font-semibold monospaced-numbers ${Math.abs(cierre.difference) < 0.01 ? "text-green-600" : "text-error"}`}>
-                      {cierre.difference >= 0 ? "+" : ""}{formatCurrency(cierre.difference)}
+                    <td className="px-4 py-4 text-body-md font-semibold text-on-surface monospaced-numbers">
+                      <span title={`Efectivo: ${formatCurrency(cierre.totalCashCount)} | Transferencia: ${formatCurrency(cierre.verifiedTransfer)} | Débito: ${formatCurrency(cierre.verifiedDebit)} | Crédito: ${formatCurrency(cierre.verifiedCredit)}`}>
+                        {formatCurrency(totalVerificado)}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
                       <StatusBadge status={cierre.status as ClosingStatus} />
@@ -191,7 +199,8 @@ export function CierresTable({ data, branches, filters, userRole }: CierresTable
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
