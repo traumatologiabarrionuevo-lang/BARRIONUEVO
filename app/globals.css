@@ -77,6 +77,29 @@ body {
 
 /* ── Print ───────────────────────────────────────────────────────── */
 @media print {
+  @page { size: A5 portrait; margin: 1cm; }
+
   .no-print { display: none !important; }
   .print-only { display: block !important; }
+
+  /* Ocultar menú lateral y resetear margen */
+  aside { display: none !important; }
+  main  { margin-left: 0 !important; }
+
+  /* Fondo blanco y texto negro para impresión */
+  body, main { background: #fff !important; color: #191c1c !important; }
+
+  /* Evitar cortes en tarjetas */
+  .bg-surface-container-lowest,
+  table,
+  tr { break-inside: avoid; }
+
+  /* Colores explícitos para que salgan en impresión */
+  .text-primary  { color: #003772 !important; }
+  .text-error    { color: #ba1a1a !important; }
+  .text-outline  { color: #727782 !important; }
+  .text-on-surface-variant { color: #424751 !important; }
+
+  /* Eliminar sombras y bordes decorativos */
+  .shadow-sm { box-shadow: none !important; }
 }

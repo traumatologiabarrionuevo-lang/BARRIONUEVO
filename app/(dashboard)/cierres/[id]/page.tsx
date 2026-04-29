@@ -3,6 +3,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getCierreById } from "@/server/queries/cierres.queries";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { PrintButton } from "@/components/ui/PrintButton";
 import { formatCurrency, formatDateTime, formatDate } from "@/lib/utils";
 
 export const metadata = { title: "Detalle de Cierre — Barrionuevo" };
@@ -44,18 +45,33 @@ export default async function CierreDetailPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-surface">
+      {/* Encabezado solo visible al imprimir */}
+      <div className="print-only hidden mb-4 pb-3 border-b border-gray-300">
+        <p className="text-[0.65rem] font-bold uppercase tracking-widest text-gray-500 mb-1">
+          Centro de Traumatología y Fisioterapia Barrionuevo
+        </p>
+        <h1 className="text-base font-bold text-gray-900">
+          Cierre #{cierre.id.slice(-8).toUpperCase()} — {cierre.branch.name}
+        </h1>
+        <p className="text-xs text-gray-500">{formatDateTime(cierre.closedAt)} · Responsable: {cierre.closedBy.name}</p>
+      </div>
+
       <PageHeader
+        className="no-print"
         title={`Cierre #${cierre.id.slice(-8).toUpperCase()}`}
         subtitle={`${cierre.branch.name} — ${formatDateTime(cierre.closedAt)}`}
         icon="receipt_long"
         actions={
-          <Link
-            href="/cierres"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-surface-container text-on-surface-variant text-xs font-semibold uppercase tracking-widest hover:bg-surface-container-high transition-all"
-          >
-            <span className="material-symbols-outlined text-base">arrow_back</span>
-            Volver
-          </Link>
+          <>
+            <Link
+              href="/cierres"
+              className="no-print inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-surface-container text-on-surface-variant text-xs font-semibold uppercase tracking-widest hover:bg-surface-container-high transition-all"
+            >
+              <span className="material-symbols-outlined text-base">arrow_back</span>
+              Volver
+            </Link>
+            <PrintButton />
+          </>
         }
       />
 

@@ -83,7 +83,9 @@ export function CierresTable({ data, branches, employees, filters, userRole }: C
           <span className="material-symbols-outlined text-base">filter_list</span>
           Filtros
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+        {/* Fila 1: Rango de fechas */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-label-sm font-bold uppercase tracking-widest text-outline">Desde</label>
             <input
@@ -102,7 +104,11 @@ export function CierresTable({ data, branches, employees, filters, userRole }: C
               className="px-3 py-2.5 rounded-lg bg-surface-container-low text-on-surface text-body-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
-          {userRole === "ADMINISTRATIVO" && (
+        </div>
+
+        {/* Fila 2: Sucursal, Empleado, Estado (solo admin) */}
+        {userRole === "ADMINISTRATIVO" && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-label-sm font-bold uppercase tracking-widest text-outline">Sucursal</label>
               <select
@@ -116,8 +122,6 @@ export function CierresTable({ data, branches, employees, filters, userRole }: C
                 ))}
               </select>
             </div>
-          )}
-          {userRole === "ADMINISTRATIVO" && (
             <div className="flex flex-col gap-1.5">
               <label className="text-label-sm font-bold uppercase tracking-widest text-outline">Empleado</label>
               <select
@@ -131,22 +135,42 @@ export function CierresTable({ data, branches, employees, filters, userRole }: C
                 ))}
               </select>
             </div>
-          )}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-label-sm font-bold uppercase tracking-widest text-outline">Estado</label>
-            <select
-              value={filters.status ?? ""}
-              onChange={(e) => updateFilter("status", e.target.value)}
-              className="px-3 py-2.5 rounded-lg bg-surface-container-low text-on-surface text-body-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-            >
-              <option value="">Todos</option>
-              <option value="CUADRADO">Cuadrado</option>
-              <option value="CON_DIFERENCIA">Con Diferencia</option>
-              <option value="PENDIENTE">Pendiente</option>
-              <option value="AUDITADO">Auditado</option>
-            </select>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-label-sm font-bold uppercase tracking-widest text-outline">Estado</label>
+              <select
+                value={filters.status ?? ""}
+                onChange={(e) => updateFilter("status", e.target.value)}
+                className="px-3 py-2.5 rounded-lg bg-surface-container-low text-on-surface text-body-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                <option value="">Todos</option>
+                <option value="CUADRADO">Cuadrado</option>
+                <option value="CON_DIFERENCIA">Con Diferencia</option>
+                <option value="PENDIENTE">Pendiente</option>
+                <option value="AUDITADO">Auditado</option>
+              </select>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Fila 2 para no-admin: solo Estado */}
+        {userRole !== "ADMINISTRATIVO" && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-label-sm font-bold uppercase tracking-widest text-outline">Estado</label>
+              <select
+                value={filters.status ?? ""}
+                onChange={(e) => updateFilter("status", e.target.value)}
+                className="px-3 py-2.5 rounded-lg bg-surface-container-low text-on-surface text-body-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                <option value="">Todos</option>
+                <option value="CUADRADO">Cuadrado</option>
+                <option value="CON_DIFERENCIA">Con Diferencia</option>
+                <option value="PENDIENTE">Pendiente</option>
+                <option value="AUDITADO">Auditado</option>
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tabla */}
