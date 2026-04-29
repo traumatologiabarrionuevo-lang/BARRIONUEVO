@@ -40,14 +40,20 @@ interface Branch {
   name: string;
 }
 
+interface Employee {
+  id: string;
+  name: string;
+}
+
 interface CierresTableProps {
   data: CierresData;
   branches: Branch[];
+  employees: Employee[];
   filters: Record<string, string | undefined>;
   userRole: Role;
 }
 
-export function CierresTable({ data, branches, filters, userRole }: CierresTableProps) {
+export function CierresTable({ data, branches, employees, filters, userRole }: CierresTableProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -107,6 +113,21 @@ export function CierresTable({ data, branches, filters, userRole }: CierresTable
                 <option value="">Todas</option>
                 {branches.map((b) => (
                   <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {userRole === "ADMINISTRATIVO" && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-label-sm font-bold uppercase tracking-widest text-outline">Empleado</label>
+              <select
+                value={filters.employeeId ?? ""}
+                onChange={(e) => updateFilter("employeeId", e.target.value)}
+                className="px-3 py-2.5 rounded-lg bg-surface-container-low text-on-surface text-body-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                <option value="">Todos</option>
+                {employees.map((e) => (
+                  <option key={e.id} value={e.id}>{e.name}</option>
                 ))}
               </select>
             </div>
